@@ -28,7 +28,7 @@ class Response
         '404' => '404 Not Found',
         '200' => '200 OK'
     );
-    private $_di = null;
+    private $_di = null, $_data = null, $_views = null;
 
     /**
      * Response类构造方法
@@ -41,6 +41,8 @@ class Response
     {
         global $di;
         $this->_di = &$di;
+        $this->_data = array();
+        $this->_views = array();
     }
 
     /**
@@ -48,14 +50,30 @@ class Response
      *
      * 向浏览器返回json格式的应答信息
      *
-     * @param   mixed   $data   需要格式化为json的数据
      * @param   mixed   $code   应答的状态码，默认值为200
      * @return  void
      */
-    public function json($data, $code = 200)
+    public function json($code = 200)
     {
         $this->status($code)->header("Content-Type: application/json; charset=utf-8");
-        echo json_encode($data);
+        echo json_encode($this->_data);
+    }
+
+    public function views($views)
+    {
+        if (is_array($views)) {
+            $this->_views = array_merge($this->_views ,$views);
+        } else {
+            $this->_views[] = $views;
+        }
+    }
+    
+    public function pull()
+    {
+        if (count($this->_views) > 0) {
+            $this->status(200)->header("Content-Type: text/html; charset=utf-8");
+            $this->_di->get('view')->assign($this->_data)->display($this->_views);
+        }
     }
 
     /**
@@ -83,5 +101,40 @@ class Response
     {
         header($header);
         return $this;
+    }
+
+    /**
+     * setVars方法
+     *
+     * 设置该对象的应答信息的属性、值
+     *
+     * @param   string   $att   设置的属性名称
+     * @param   mixed    $val   设置的属性值
+     * @return  system\http\Response
+     */
+    public function setVars($att, $val = null)
+    {
+        if (is_array($att)) {
+            foreach ($att as $k => $v) {
+                $this->setVars($k, $v);
+            }
+        } else {
+            $this->_data[$att] = $val;
+        }
+        return $this;
+    }
+
+    /**
+     * __set方法
+     *
+     * 魔术方法，定义该对象属性设置的行为
+     *
+     * @param   string   $att   设置的属性名称
+     * @param   mixed    $val   设置的属性值
+     * @return  void
+     */
+    public function __set($att, $val)
+    {
+        $this->_data[$att] = $val;
     }
 }

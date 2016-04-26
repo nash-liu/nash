@@ -50,11 +50,8 @@ class Router
     {
         $uri = $this->_di->get('uri')->prase_path();
         $controller_class_name = "{$uri['module']}\\controller\\{$uri['controller']}";
-        try{
-            $contro = new $controller_class_name;
-            $contro->call($uri['action'], $uri['params']);
-        }catch(\Exception $e){
-            echo $e->xdebug_message;
-        }
+        $contro = new $controller_class_name;
+        $contro->call($uri['action'], $uri['params']);
+        $this->_di->get('res')->pull();
     }
 }

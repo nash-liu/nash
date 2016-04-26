@@ -22,7 +22,7 @@ namespace system\lib;
  * @category    core
  * @author      Nash
  */
-class Error
+class Error extends \Exception
 {
     private $_di = null;
 
@@ -33,9 +33,15 @@ class Error
      *
      * @return  void
      */
-    public function __construct()
+    public function __construct($message, $code = 500, \Exception $previous = null)
     {
+        parent::__construct($message, $code, $previous);
         global $di;
         $this->_di = &$di;
+    }
+    
+    public function error_res()
+    {
+        echo 122;
     }
 }

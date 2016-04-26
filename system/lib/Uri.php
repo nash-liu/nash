@@ -25,6 +25,7 @@ namespace system\lib;
 class Uri
 {
     private $_di = null;
+    private $_uri_path = null;
 
     /**
      * Uri类构造方法
@@ -48,41 +49,44 @@ class Uri
      */
     public function prase_path()
     {
-        $conf = $this->_di->get('config')->base_data('route');
-        $uri = strtr($this->_di->get('req')->server('REQUEST_URI'), array('.htm'=>'', isset($conf['subdir'])?$conf['subdir']:''=>''));
-        $uri_arr = explode('/', $uri);
-        $module_name = $controller_name = $action_name = '';
-        $params = array();
-        if ($uri === '/') {
-            $module_name = $conf['module'];
-        } else {
-            $module_name = empty($uri_arr[1]) ? $conf['module'] : $uri_arr[1];
-            $controller_name = isset($uri_arr[2]) ? $uri_arr[2] : '';
-            $action_name = isset($uri_arr[3]) ? $uri_arr[3] : '';
-            $params = count($uri_arr) > 4 ? array_slice($uri_arr, 4) : array();
-            if (!is_dir(WEB_DIR . DS . $module_name)) {
-                $action_name = $controller_name;
-                $controller_name = $module_name;
+        if (is_null($this->_uri_path)) {
+            $conf = $this->_di->get('config')->base_data('route');
+            $uri = strtr($this->_di->get('req')->server('REQUEST_URI'), array('.htm'=>'', (empty($conf['subdir'])?' ':$conf['subdir'])=>''));
+            $uri_arr = explode('/', $uri);
+            $module_name = $controller_name = $action_name = '';
+            $params = array();
+            if ($uri === '/') {
                 $module_name = $conf['module'];
-                $params = count($uri_arr) > 3 ? array_slice($uri_arr, 3) : array();
+            } else {
+                $module_name = empty($uri_arr[1]) ? $conf['module'] : $uri_arr[1];
+                $controller_name = isset($uri_arr[2]) ? $uri_arr[2] : '';
+                $action_name = isset($uri_arr[3]) ? $uri_arr[3] : '';
+                $params = count($uri_arr) > 4 ? array_slice($uri_arr, 4) : array();
+                if (!is_dir(WEB_DIR . DS . $module_name)) {
+                    $action_name = $controller_name;
+                    $controller_name = $module_name;
+                    $module_name = $conf['module'];
+                    $params = count($uri_arr) > 3 ? array_slice($uri_arr, 3) : array();
+                }
             }
+            $m_conf = $this->_di->get('config')->set_module($module_name)->module_data('route');
+            if (empty($controller_name) && isset($m_conf['controller']) && !empty($m_conf['controller'])) {
+                $controller_name = $m_conf['controller'];
+            } elseif (empty($controller_name)) {
+                $controller_name = $conf['controller'];
+            }
+            if (empty($action_name) && isset($m_conf['action']) && !empty($m_conf['action'])) {
+                $action_name = $m_conf['action'];
+            } elseif (empty($action_name)) {
+                $action_name = $conf['action'];
+            }
+            $this->_uri_path = array(
+                'module' => $module_name
+                , 'controller' => ucfirst($controller_name)
+                , 'action' => $action_name
+                , 'params' => $params
+            );
         }
-        $m_conf = $this->_di->get('config')->set_module($module_name)->module_data('route');
-        if (empty($controller_name) && isset($m_conf['controller']) && !empty($m_conf['controller'])) {
-            $controller_name = $m_conf['controller'];
-        } elseif (empty($controller_name)) {
-            $controller_name = $conf['controller'];
-        }
-        if (empty($action_name) && isset($m_conf['action']) && !empty($m_conf['action'])) {
-            $action_name = $m_conf['action'];
-        } elseif (empty($action_name)) {
-            $action_name = $conf['action'];
-        }
-        return array(
-            'module' => $module_name
-            , 'controller' => ucfirst($controller_name)
-            , 'action' => $action_name
-            , 'params' => $params
-        );
+        return $this->_uri_path;
     }
 }

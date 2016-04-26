@@ -23,7 +23,6 @@ namespace system;
 class Di
 {
 
-    private $_php_version = null;
     private $_services = [];
 
     /**
@@ -86,10 +85,13 @@ class Di
      * @param   Closure   $key_function  需要注入的依赖闭包
      * @return  system\Di
      */
-    public function set($key, \Closure $key_function)
+    public function set($key, $key_function)
     {
-        $this->_services[$key] = array(false, $key_function);
-        return $this;
+        if ($key_function instanceof \Closure) {
+            $this->_services[$key] = array(false, $key_function);
+            return $this;
+        }
+        throw new \system\lib\Error("system\Di::set()方法的第二个参数必须为闭包");
     }
 
     /**
@@ -101,10 +103,13 @@ class Di
      * @param   Closure   $key_function  需要注入的依赖闭包
      * @return  system\Di
      */
-    public function share($key, \Closure $key_function)
+    public function share($key, $key_function)
     {
-        $this->_services[$key] = array(true, $key_function);
-        return $this;
+        if ($key_function instanceof \Closure) {
+            $this->_services[$key] = array(true, $key_function);
+            return $this;
+        }
+        throw new \system\lib\Error("system\Di::share()方法的第二个参数必须为闭包");
     }
 
     /**
@@ -112,15 +117,18 @@ class Di
      *
      * 获取依赖实例
      *
-     * @param   string   $key           需要注入的依赖名称
+     * @param   string   $key   需要获取的依赖名称
      * @return  mixed
      */
     public function get($key)
     {
-        if (is_object($this->_services[$key][1]) && !is_callable($this->_services[$key][1])) {
-            return $this->_services[$key][1];
+        if (isset($this->_services[$key])) {
+            if (is_object($this->_services[$key][1]) && !is_callable($this->_services[$key][1])) {
+                return $this->_services[$key][1];
+            }
+            return $this->_create_service($key, $this->_services[$key][0], $this->_services[$key][1]);
         }
-        return $this->_create_service($key, $this->_services[$key][0], $this->_services[$key][1]);
+        throw new \system\lib\Error("尝试获取不存在的环境依赖'{$key}'");
     }
 
     /**

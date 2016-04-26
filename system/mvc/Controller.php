@@ -53,6 +53,15 @@ class Controller
         if (method_exists($this, $method_name)) {
             return call_user_func_array(array($this, $method_name), $param);
         }
-        throw new \Exception("Error Processing Request", 1);
+        throw new \system\lib\Error("找不到您请求的路由", 404);
+    }
+    
+    public function __get($key)
+    {
+        if (in_array($key, array('req', 'res'))) {
+            return $this->_di->get($key);
+        } else {
+            throw new \system\lib\Error("您希望获取一个无效的注册依赖或一个不被允许的依赖");
+        }
     }
 }

@@ -15,7 +15,7 @@ namespace system\mvc;
 /**
  * system\mvc\View类
  *
- * 这个类的实例作为控制器基类
+ * 这个类的实例作为视图类基类
  *
  * @package     system
  * @subpackage  mvc
@@ -55,8 +55,11 @@ class View
             foreach ($key as $k => $v) {
                 $this->assign($k, $v);
             }
+        } elseif (is_string($key) && !is_numeric($key)) {
+            $this->_vars[$key] = $value;
+        } else {
+            throw new \system\lib\Error("向视图中注册变量使用了无效的参数名称");
         }
-        $this->_vars[$key] = $value;
         return $this;
     }
 
@@ -73,12 +76,32 @@ class View
         foreach ($this->_vars as $key => $value) {
             $$key = $value;
         }
+        $uri = $this->_di->get('uri')->prase_path();
         if (is_array($view)) {
             foreach ($view as $value) {
-                require WEB_DIR . DS . 'app' . DS . 'view' . DS . $value . '.phtml';
+                require $this->_check_path(WEB_DIR . DS . $uri['module'] . DS . 'view' . DS . strtr($value, array('/' => DS, '\\' => DS)) ,'.phtm');
             }
         } else {
-            require WEB_DIR . DS . 'app' . DS . 'view' . DS . $view . '.phtml';
+            require $this->_check_path(WEB_DIR . DS . $uri['module'] . DS . 'view' . DS . strtr($view, array('/' => DS, '\\' => DS)) ,'.phtm');
         }
+    }
+
+    /**
+     * _check_path方法
+     *
+     * 检查文件是否存在
+     *
+     * @param   string  $path  需要检查的文件名
+     * @param   string  $fixed 需要动态检查的文件名后缀
+     * @return  string
+     */
+    private function _check_path($path, $fixed)
+    {
+        if (is_file($path)) {
+            return $path;
+        } elseif (is_file($path . $fixed)) {
+            return $path . $fixed;
+        }
+        throw new \system\lib\Error("找不到定义的视图");
     }
 }

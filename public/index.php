@@ -6,45 +6,52 @@ define('DS', DIRECTORY_SEPARATOR);
 
 spl_autoload_register(
     function ($class_name) {
-        $location_path = WEB_DIR . DS . strtr($class_name, '\\', DS) . '.php';
+        $location_path = WEB_DIR . DS . strtr($class_name, array('/' => DS, '\\' => DS)) . '.php';
         if (is_file($location_path)) {
             require $location_path;
         } else {
-            throw new Exception("Can't Find Class '{$class_name}'", 1);
+            throw new system\lib\Error("找不到指定的类定义'{$class_name}'");
         }
     }
 );
 
-$di = new system\Di;
 
-$di->share('config', function () {
-    $config = new system\lib\Config(WEB_DIR . DS . 'public' . DS . 'conf.ini');
-    return $config;
-});
+try {
 
-$di->share('uri', function () {
-    $config = new system\lib\Uri;
-    return $config;
-});
+    $di = new system\Di;
 
-$di->share('router', function () {
-    $router = new system\lib\Router;
-    return $router;
-});
+    $di->share('config', function () {
+        $config = new system\lib\Config(WEB_DIR . DS . 'public' . DS . 'conf.ini');
+        return $config;
+    });
 
-$di->share('req', function () {
-    $req = new system\http\Request;
-    return $req;
-});
+    $di->share('uri', function () {
+        $config = new system\lib\Uri;
+        return $config;
+    });
 
-$di->share('res', function () {
-    $res = new system\http\Response;
-    return $res;
-});
+    $di->share('router', function () {
+        $router = new system\lib\Router;
+        return $router;
+    });
 
-$di->set('view', function () {
-    $res = new system\mvc\View;
-    return $res;
-});
+    $di->share('req', function () {
+        $req = new system\http\Request;
+        return $req;
+    });
 
-echo $di->run();
+    $di->share('res', function () {
+        $res = new system\http\Response;
+        return $res;
+    });
+
+    $di->set('view', function () {
+        $res = new system\mvc\View;
+        return $res;
+    });
+
+    $di->run();
+
+} catch (system\lib\Error $e) {
+    echo $e->error_res();
+}
