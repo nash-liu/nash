@@ -38,12 +38,11 @@ class Uri
         global $di;
         $this->_di = &$di;
     }
-    
-    
+
     public function prase_path()
     {
-        $uri = strtr($this->_di->get('req')->server('REQUEST_URI'), array('.htm'=>''));
         $conf = $this->_di->get('config')->base_data('route');
+        $uri = strtr($this->_di->get('req')->server('REQUEST_URI'), array('.htm'=>'', isset($conf['subdir'])?$conf['subdir']:''=>''));
         $uri_arr = explode('/', $uri);
         $module_name = $controller_name = $action_name = '';
         $params = array();
