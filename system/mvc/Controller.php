@@ -24,7 +24,7 @@ namespace system\mvc;
  */
 class Controller
 {
-    private $_di = null;
+    protected $_di = null;
 
     /**
      * Controller类构造方法
@@ -38,7 +38,16 @@ class Controller
         global $di;
         $this->_di = &$di;
     }
-    
+
+    /**
+     * call方法
+     *
+     * 执行框架请求
+     *
+     * @param  $method_name  呼叫的控制器方法
+     * @param  $param        呼叫方法的参数
+     * @return mixed
+     */
     public function call($method_name, $param)
     {
         if (method_exists($this, $method_name)) {

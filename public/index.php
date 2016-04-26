@@ -42,4 +42,9 @@ $di->share('res', function () {
     return $res;
 });
 
+$di->set('view', function () {
+    $res = new system\mvc\View;
+    return $res;
+});
+
 echo $di->run();

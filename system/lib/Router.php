@@ -39,6 +39,13 @@ class Router
         $this->_di = &$di;
     }
 
+    /**
+     * route方法
+     *
+     * 执行路由操作
+     *
+     * @return array
+     */
     public function route()
     {
         $uri = $this->_di->get('uri')->prase_path();

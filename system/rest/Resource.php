@@ -22,9 +22,9 @@ namespace system\rest;
  * @category    core
  * @author      Nash
  */
-class Resource extends \system\mvc\Controller
+class Resource
 {
-    private $_di = null;
+    protected $_di = null;
 
     /**
      * Resource类构造方法

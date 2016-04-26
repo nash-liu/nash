@@ -39,6 +39,13 @@ class Uri
         $this->_di = &$di;
     }
 
+    /**
+     * prase_path方法
+     *
+     * 解析路径获取控制器、方法、参数
+     *
+     * @return array
+     */
     public function prase_path()
     {
         $conf = $this->_di->get('config')->base_data('route');
