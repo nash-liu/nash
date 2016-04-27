@@ -15,7 +15,7 @@ namespace system\lib;
 /**
  * system\lib\Error类
  *
- * 这个类的实例代表框架的配置类库
+ * 这个类的实例代表框架异常
  *
  * @package     system
  * @subpackage  lib
@@ -39,9 +39,21 @@ class Error extends \Exception
         global $di;
         $this->_di = &$di;
     }
-    
+
+    /**
+     * error_res方法
+     *
+     * 输出错误信息的视图展示
+     *
+     * @return  void
+     */
     public function error_res()
     {
-        echo 122;
+        $this->_di->get('res')->status($this->getCode())->setVars(array(
+            'message' => $this->getMessage(),
+            'code' => $this->getCode(),
+            'file' => $this->getFile(),
+            'line' => $this->getLine()
+        ))->views('error/' . $this->getCode())->pull();
     }
 }

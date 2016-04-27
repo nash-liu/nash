@@ -7,6 +7,6 @@ class Admin extends \system\mvc\Controller
     {
         $this->res->code = '404';
         $this->res->message = '找不到您的资源';
-        $this->res->json(404);
+        $this->res->status(404)->json();
     }
 }

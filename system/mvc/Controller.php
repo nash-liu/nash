@@ -55,7 +55,15 @@ class Controller
         }
         throw new \system\lib\Error("找不到您请求的路由", 404);
     }
-    
+
+    /**
+     * __get魔术方法
+     *
+     * 获取框架上下文中的依赖服务
+     *
+     * @param  $key  需要获取的依赖名称
+     * @return mixed
+     */
     public function __get($key)
     {
         if (in_array($key, array('req', 'res'))) {

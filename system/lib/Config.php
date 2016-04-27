@@ -39,7 +39,11 @@ class Config
     {
         global $di;
         $this->_di = &$di;
-        $this->_config = array('base'=>parse_ini_file($default_config_file_path, true));
+        if (is_file($default_config_file_path)) {
+            $this->_config = array('base'=>parse_ini_file($default_config_file_path, true));
+        } else {
+            throw new \system\lib\Error("框架配置文件无法读取");
+        }
     }
 
     /**
@@ -79,7 +83,10 @@ class Config
      */
     private function _get_arr($type, $key)
     {
-        return $this->_config[$type][$key];
+        if (isset($this->_config[$type][$key])) {
+            return $this->_config[$type][$key];
+        }
+        throw new \system\lib\Error("正在尝试获取不存在的配置数据");
     }
 
     /**
@@ -92,7 +99,12 @@ class Config
      */
     public function set_module($module)
     {
-        $this->_config['module'] = require WEB_DIR . DS . $module . DS . 'conf.inc';
-        return $this;
+        $file_path = WEB_DIR . DS . $module . DS . 'conf.inc';
+        if (is_file($file_path)) {
+            $this->_config['module'] = require $file_path;
+            return $this;
+        } else {
+            throw new \system\lib\Error("请求配置文件无法读取");
+        }
     }
 }

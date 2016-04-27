@@ -24,11 +24,12 @@ namespace system\http;
  */
 class Response
 {
-    private $status = array(
+    private $_status = array(
         '404' => '404 Not Found',
+        '500' => '500 Internal Server Error',
         '200' => '200 OK'
     );
-    private $_di = null, $_data = null, $_views = null;
+    private $_di = null, $_data = null, $_views = null, $_code = null;
 
     /**
      * Response类构造方法
@@ -43,6 +44,7 @@ class Response
         $this->_di = &$di;
         $this->_data = array();
         $this->_views = array();
+        $this->_code = '200';
     }
 
     /**
@@ -50,15 +52,22 @@ class Response
      *
      * 向浏览器返回json格式的应答信息
      *
-     * @param   mixed   $code   应答的状态码，默认值为200
      * @return  void
      */
-    public function json($code = 200)
+    public function json()
     {
-        $this->status($code)->header("Content-Type: application/json; charset=utf-8");
+        $this->header("Status: " . $this->_status[$this->_code])->header("Content-Type: application/json; charset=utf-8");
         echo json_encode($this->_data);
     }
 
+    /**
+     * views方法
+     *
+     * 设置当前请求的视图
+     *
+     * @param   string   $views   视图文件相对视图目录的路径
+     * @return  system\http\Response
+     */
     public function views($views)
     {
         if (is_array($views)) {
@@ -66,12 +75,20 @@ class Response
         } else {
             $this->_views[] = $views;
         }
+        return $this;
     }
-    
+
+    /**
+     * pull方法
+     *
+     * 输出视图到客户端
+     *
+     * @return  void
+     */
     public function pull()
     {
         if (count($this->_views) > 0) {
-            $this->status(200)->header("Content-Type: text/html; charset=utf-8");
+            $this->header("Status: " . $this->_status[$this->_code])->header("Content-Type: text/html; charset=utf-8");
             $this->_di->get('view')->assign($this->_data)->display($this->_views);
         }
     }
@@ -86,7 +103,8 @@ class Response
      */
     public function status($code)
     {
-        return $this->header("Status: " . $this->status["{$code}"]);
+        $this->_code = "{$code}";
+        return $this;
     }
 
     /**

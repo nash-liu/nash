@@ -15,7 +15,7 @@ namespace system\lib;
 /**
  * system\lib\Uri类
  *
- * 这个类的实例代表框架运行的路由库
+ * 这个类的实例代表框架运行的uri解析
  *
  * @package     system
  * @subpackage  lib
