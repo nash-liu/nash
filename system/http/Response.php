@@ -103,8 +103,11 @@ class Response
      */
     public function status($code)
     {
-        $this->_code = "{$code}";
-        return $this;
+        if (array_key_exists("{$code}", $this->_status)) {
+            $this->_code = "{$code}";
+            return $this;
+        }
+        throw new \system\lib\Error("您正在设置一个未知的状态码");
     }
 
     /**
