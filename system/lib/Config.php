@@ -85,6 +85,8 @@ class Config
     {
         if (isset($this->_config[$type][$key])) {
             return $this->_config[$type][$key];
+        } elseif ($type === 'module' && isset($this->_config['base'][$key])) {
+            return $this->_config['base'][$key];
         }
         throw new \system\lib\Error("正在尝试获取不存在的配置数据");
     }

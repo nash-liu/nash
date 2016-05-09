@@ -26,8 +26,8 @@ try {
     });
 
     $di->share('uri', function () {
-        $config = new system\lib\Uri;
-        return $config;
+        $uri = new system\lib\Uri;
+        return $uri;
     });
 
     $di->share('router', function () {
@@ -46,8 +46,13 @@ try {
     });
 
     $di->set('view', function () {
-        $res = new system\mvc\View;
-        return $res;
+        $view = new system\mvc\View;
+        return $view;
+    });
+
+    $di->set('db', function () {
+        $db = new system\util\Database;
+        return $db;
     });
 
     $di->run();
