@@ -14,7 +14,7 @@ namespace system\util;
 /**
  * system\util\Database类
  *
- * 这个类的实例作为控制器基类
+ * 这个类的实例作为数据库操作类
  *
  * @package     system
  * @subpackage  util
@@ -60,11 +60,13 @@ class Database
      *
      * 执行sql语句
      *
+     * @param  $prepare  预处理sql语句
+     * @param  $data     预处理绑定的数据
      * @return  mixed
      */
-    public function exec($prepare, $data)
+    public function exec($prepare, $data = array())
     {
-        $this->_stmt = $this->get_conn()->prepare($sql);
+        $this->_stmt = $this->get_conn()->prepare($prepare);
         return $this->_stmt->execute($data) ? $this : false;
     }
 
@@ -73,22 +75,25 @@ class Database
      *
      * 执行一个事务
      *
+     * @param  $actions     需要执行的事务的处理函数
      * @return  bool
      */
     public function trans($actions)
     {
         if ($actions instanceof \Closure) {
-            $this->get_conn()->setAttribute(PDO::ATTR_AUTOCOMMIT, 0);
+            $this->get_conn()->setAttribute(\PDO::ATTR_AUTOCOMMIT, 0);
+            $re = false;
             try {
                 $this->get_conn()->beginTransaction();
                 $actions($this);
                 $this->get_conn()->commit();
-                return true;
-            } catch (PDOException $e) {
+                $re = true;
+            } catch (\PDOException $e) {
                 $this->get_conn()->rollback();
-                return false;
+            } finally {
+                $this->get_conn()->setAttribute(\PDO::ATTR_AUTOCOMMIT, 1);
+                return $re;
             }
-            $this->get_conn()->setAttribute(PDO::ATTR_AUTOCOMMIT, 1);
         }
         throw new \system\lib\Error("system\util\Database::trans()方法的参数必须为闭包");
     }

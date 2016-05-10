@@ -50,7 +50,7 @@ try {
         return $view;
     });
 
-    $di->set('db', function () {
+    $di->share('db', function () {
         $db = new system\util\Database;
         return $db;
     });

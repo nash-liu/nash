@@ -66,7 +66,7 @@ class Controller
      */
     public function __get($key)
     {
-        if (in_array($key, array('req', 'res'))) {
+        if (in_array($key, array('req', 'res', 'db'))) {
             return $this->_di->get($key);
         } else {
             throw new \system\lib\Error("您希望获取一个无效的注册依赖或一个不被允许的依赖");
