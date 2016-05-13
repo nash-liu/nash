@@ -71,6 +71,34 @@ class Database
     }
 
     /**
+     * all方法
+     *
+     * 从结果集中获取全部数据
+     *
+     * @return  mixed
+     */
+    public function all()
+    {
+        $re = $this->_stmt->fetchAll(\PDO::FETCH_ASSOC);
+        $this->_stmt->closeCursor();
+        return $re;
+    }
+
+    /**
+     * one方法
+     *
+     * 从结果集中获取一行数据
+     *
+     * @return  mixed
+     */
+    public function one()
+    {
+        $re = $this->_stmt->fetch(\PDO::FETCH_ASSOC);
+        $this->_stmt->closeCursor();
+        return $re;
+    }
+
+    /**
      * trans方法
      *
      * 执行一个事务
@@ -109,7 +137,7 @@ class Database
     {
         return $this->get_conn()->lastInsertId();
     }
-    
+
     /**
      * affected_rows方法
      *

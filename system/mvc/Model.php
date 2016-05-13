@@ -15,7 +15,7 @@ namespace system\mvc;
 /**
  * system\mvc\Model类
  *
- * 这个类的实例作为模型基类
+ * 这个类的实例作为数据库模型基类
  *
  * @package     system
  * @subpackage  mvc
@@ -24,186 +24,170 @@ namespace system\mvc;
  */
 class Model
 {
+    const TABLE = 'TABLE';
     const COLLATE = 'COLLATE';
     const ENGINE = 'ENGINE';
-    const TABLE = 'TABLE';
+    const COMMENT = 'COMMENT';
     const FIELDS = 'FIELDS';
-
-    const INDEX = 'INDEX';
-    const UNIQUE = 'UNIQUE INDEX';
-    const SPATIAL = 'SPATIAL INDEX';
-    const FULLTEXT = 'FULLTEXT INDEX';
-    const PRIMARY = 'PRIMARY KEY';
-    const FOREIGN = 'FOREIGN KEY';
 
     const TYPE = 'TYPE';
     const TYPE_INT = 'INT';
     const TYPE_VARCHAR = 'VARCHAR';
     const TYPE_CHAR = 'CHAR';
-    const TYPE_DATETIME = 'DATETIME';
     const TYPE_TEXT = 'TEXT';
+    const TYPE_DATE = 'DATE';
+    const TYPE_DATETIME = 'DATETIME';
+    const TYPE_TIME = 'TIME';
     const TYPE_BIT = 'BIT';
     const TYPE_TIMESTAMP = 'TIMESTAMP';
+    const TYPE_SET = 'SET';
+    const TYPE_ENUM = 'ENUM';
 
-    const NOT_NULL = 'NOT NULL';
+    const UNSIGNED = 'UNSIGNED';
     const AUTO_INCREMENT = 'AUTO_INCREMENT';
 
+    const NOT_NULL = 'NOT NULL';
+
     const DEFAULT_VALUE = 'DEFAULT';
-    const DEFAULT_NULL = 'NULL';
-    const DEFAULT_CURRENT_TIMESTAMP = 'CURRENT_TIMESTAMP';
-    const DEFAULT_CURRENT_TIMESTAMP_WITH_UPDATE = 'CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP';
+    const DEFAULT_NULL = ' NULL';
+    const DEFAULT_NOW = ' CURRENT_TIMESTAMP';
 
-    const COMMENT = 'COMMENT';
+    const ON_UPDATE_NOW = ' ON UPDATE CURRENT_TIMESTAMP';
 
-    protected $_di = null;
+    const KEYS = 'KEYS';
+    const PRIMARY = 'PRIMARY KEY ';
+    const INDEX = 'INDEX ';
+    const FOREIGN = 'FOREIGN KEY ';
+    const UNIQUE = 'UNIQUE INDEX ';
+    const FULLTEXT = 'FULLTEXT INDEX ';
+    const SPATIAL = 'SPATIAL INDEX ';
 
-    /**
-     * Model类构造方法
-     *
-     * 构建一个Model类的实例
-     *
-     * @return  void
-     */
-    public function __construct()
+    private $_class_name, $_table;
+
+    public function __construct($class_name)
     {
-        global $di;
-        $this->_di = &$di;
-    }
-    
-    public function get()
-    {
-        # code...
-    }
-/*
-[
-    'id' => 12
-]
-*/
-    public static function find($where)
-    {
-        $where = $this->_where('AND', $where);
+        $this->_class_name = $class_name;
+        $this->_table = $class_name::$table;
     }
 
-    protected function _where($uni, $arr)
+    public function where($value='')
     {
         # code...
     }
 
-    /**
-     * migrate方法
-     *
-     * 执行数据库表的创建过程，请作为事务过程处理
-     *
-     * @return mixed
-     */
+    public function order($value='')
+    {
+        # code...
+    }
+
+    public function offset($value='')
+    {
+        # code...
+    }
+
+    public function get($value='')
+    {
+        # code...
+    }
+
+    public static function depot()
+    {
+        return new system\mvc\Model(get_called_class());
+    }
+
     public static function migrate()
     {
-        $class = get_called_class();
-        $sql = 'CREATE TABLE `' . $class::$table[\system\mvc\Model::TABLE] . '` (';
-        $filed_arr = array();
-        foreach ($class::$table[\system\mvc\Model::FIELDS] as $key => $value) {
-            if (is_array($value)) {
-                $filed_arr[] = SELF::_make_filed($key, $value);
-            } else {
-                // 该模型为简化模型，不进行迁移处理，抛出异常
-            }
-        }
-        $arr = array(\system\mvc\Model::PRIMARY, \system\mvc\Model::FOREIGN, \system\mvc\Model::INDEX, \system\mvc\Model::UNIQUE, \system\mvc\Model::FULLTEXT, \system\mvc\Model::SPATIAL);
-        foreach ($arr as $v) {
-            if (array_key_exists($v, $class::$table)) {
-                if ($v === \system\mvc\Model::PRIMARY) {
-                    $filed_arr[] = SELF::_make_key($v, $class::$table[$v]);
-                } elseif ($v === \system\mvc\Model::FOREIGN) {
-                    foreach ($class::$table[$v] as $key => $value) {
-                        $re_temp = explode('#', $key);
-                        $filed_arr[] = SELF::_make_key('FOREIGN KEY', $value[0]) . SELF::_make_key(' REFERENCES `' . $re_temp[0] . '`', $value[1]);
-                    }
-                } else {
-                    foreach ($class::$table[$v] as $value) {
-                        $filed_arr[] = SELF::_make_key($v, $value);
-                    }
-                }
-            }
-        }
-        $sql .= (implode(', ', $filed_arr) . ')');
-        $arr = array(\system\mvc\Model::COLLATE, \system\mvc\Model::ENGINE, \system\mvc\Model::COMMENT);
-        foreach ($arr as $v) {
-            if (array_key_exists($v, $class::$table)) {
-                if ($v !== \system\mvc\Model::ENGINE) {
-                    $sql .= (' ' . $v . '=\'' . $class::$table[$v] . '\'');
-                } else {
-                    $sql .= (' ' . $v . '=' . $class::$table[$v]);
-                }
-            }
-        }
+        $class_name = get_called_class();
         global $di;
-        return $di->get('db')->exec($sql);
+        return $di->get('db')->exec(Model::_make_table($class_name::$table)) !== false;
     }
 
-    /**
-     * _make_key方法
-     *
-     * 生成制定key或者index参数部分sql语句
-     *
-     * @param  $keyname  key和index的类型
-     * @param  $keys     需要设置的值
-     * @return string
-     */
-    protected static function _make_key($keyname, $keys)
+    protected static function _make_table($arr)
     {
-        if (is_array($keys)) {
-            return $keyname . ' (`' . implode('`, `', $keys) . '`)';
-        } else {
-            return $keyname . ' (`' . $keys . '`)';
+        $re = 'CREATE TABLE IF NOT EXISTS `' . $arr[Model::TABLE] . '` (' . Model::_make_fields($arr[Model::FIELDS]);
+        if (isset($arr[Model::KEYS])) {
+            $re .= (', ' . Model::_make_keys($arr[Model::KEYS]));
         }
-    }
-
-    /**
-     * _make_filed方法
-     *
-     * 生成字段部分sql
-     *
-     * @param  $filed_name  字段名称
-     * @param  $filed_arr   字段属性的参数
-     * @return string
-     */
-    protected static function _make_filed($filed_name, $filed_arr)
-    {
-        $re = '`' . $filed_name . '`';
-        if (array_key_exists(\system\mvc\Model::TYPE, $filed_arr)) {
-            $re .= SELF::_make_filed_type($filed_arr[\system\mvc\Model::TYPE]);
+        $re .= ')';
+        if (isset($arr[Model::COMMENT])) {
+            $re .= (' COMMENT=\'' . $arr[Model::COMMENT] . '\'');
         }
-        if (in_array(\system\mvc\Model::NOT_NULL, $filed_arr)) {
-            $re .= ' NOT';
+        if (isset($arr[Model::COLLATE])) {
+            $re .= (' COLLATE=\'' . $arr[Model::COLLATE] . '\'');
         }
-        $re .= ' NULL';
-        if (in_array(\system\mvc\Model::AUTO_INCREMENT, $filed_arr)) {
-            $re .= ' AUTO_INCREMENT';
-        } elseif (array_key_exists(\system\mvc\Model::DEFAULT_VALUE, $filed_arr)) {
-            $re .= (' DEFAULT ' . (in_array($filed_arr[\system\mvc\Model::DEFAULT_VALUE], array(\system\mvc\Model::DEFAULT_NULL, \system\mvc\Model::DEFAULT_CURRENT_TIMESTAMP, \system\mvc\Model::DEFAULT_CURRENT_TIMESTAMP_WITH_UPDATE)) ? $filed_arr[\system\mvc\Model::DEFAULT_VALUE] : ('\'' . $filed_arr[\system\mvc\Model::DEFAULT_VALUE] . '\'')));
-        }
-        if (array_key_exists(\system\mvc\Model::COMMENT, $filed_arr)) {
-            $re .= ' COMMENT \'' . $filed_arr[\system\mvc\Model::COMMENT] . '\'';
+        if (isset($arr[Model::ENGINE])) {
+            $re .= (' ENGINE=' . $arr[Model::ENGINE]);
         }
         return $re;
     }
 
-    /**
-     * _make_filed_type方法
-     *
-     * 生成字段值的类型
-     *
-     * @param  $type_arr  需要生成的字段的类型数据
-     * @return string
-     */
-    protected static function _make_filed_type($type_arr)
+    protected static function _make_fields($fields)
     {
-        if (is_array($type_arr) && isset($type_arr[1])) {
-            return ' ' . $type_arr[0] . '(' . $type_arr[1] . ')';
-        } elseif (is_array($type_arr)) {
-            return ' ' . $type_arr[0];
-        } else {
-            return ' ' . $type_arr;
+        $arr = array();
+        foreach ($fields as $key => $value) {
+            if (!is_array($value)) {
+                throw new Exception("Error Processing Request", 1);
+            }
+            $re_temp = '`' . $key . '`';
+            $type = $value[Model::TYPE];
+            if (is_array($type) && isset($type[1]) && is_array($type[1])) {
+                $re_temp .= (' ' . $type[0] . '(\'' . implode('\', \'', $type[1]) . '\')');
+            } elseif (is_array($type) && isset($type[1])) {
+                $re_temp .= (' ' . $type[0] . '(' . $type[1] . ')');
+            } elseif (is_array($type)) {
+                $re_temp .= (' ' . $type[0]);
+            } else {
+                $re_temp .= (' ' . $type);
+            }
+            if (in_array(Model::UNSIGNED, $value)) {
+                $re_temp .= ' UNSIGNED';
+            }
+            if (in_array(Model::NOT_NULL, $value)) {
+                $re_temp .= ' NOT';
+            }
+            $re_temp .= ' NULL';
+            if (in_array(Model::AUTO_INCREMENT, $value)) {
+                $re_temp .= ' AUTO_INCREMENT';
+            }
+            if (isset($value[Model::DEFAULT_VALUE])) {
+                $re_temp .= ' DEFAULT';
+                if ($value[Model::DEFAULT_VALUE] === Model::DEFAULT_NULL || $value[Model::DEFAULT_VALUE] === Model::DEFAULT_NOW) {
+                    $re_temp .= $value[Model::DEFAULT_VALUE];
+                } else {
+                    $re_temp .= (' \'' . $value[Model::DEFAULT_VALUE] . '\'');
+                }
+                if (in_array(Model::ON_UPDATE_NOW, $value)) {
+                    $re_temp .= Model::ON_UPDATE_NOW;
+                }
+            }
+            if (isset($value[Model::COMMENT])) {
+                $re_temp .= (' COMMENT \'' . $value[Model::COMMENT] . '\'');
+            }
+            $arr[] = $re_temp;
         }
+        return implode(', ', $arr);
+    }
+
+    protected static function _make_keys($keys)
+    {
+        $arr = array();
+        foreach ($keys as $k => $v) {
+            if (is_array($v)) {
+                if ($k === Model::PRIMARY) {
+                    $arr[] = $k . '(`' . implode('`, `', $v) . '`)';
+                } elseif ($k === Model::FOREIGN) {
+                    foreach ($v as $_k => $_v) {
+                        $arr[] = 'FOREIGN KEY (`' . (is_array($_v[0]) ? implode('`, `', $_v[0]) : $_v[0]) . '`) REFERENCES `' . $_k . '` (`' . (is_array($_v[1]) ? implode('`, `', $_v[1]) : $_v[1]) . '`)';
+                    }
+                } else {
+                    foreach ($v as $_k => $_v) {
+                        $arr[] = $k . '(`' . (is_array($_v) ? implode('`, `', $_v) : $_v) . '`)';
+                    }
+                }
+            } else {
+                $arr[] = $k . '(`' . $v . '`)';
+            }
+        }
+        return implode(', ', $arr);
     }
 }
