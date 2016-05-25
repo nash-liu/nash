@@ -51,7 +51,7 @@ try {
     });
 
     $di->share('db', function () {
-        $db = new system\util\Database;
+        $db = new system\lib\Database;
         return $db;
     });
 

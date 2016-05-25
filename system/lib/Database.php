@@ -1,29 +1,29 @@
 <?php
 /** 
- * 文件名(system/util/Database.php)
+ * 文件名(system/lib/Database.php)
  * 
  * 提供Database类的定义
  * 
  * @package     system
- * @subpackage  util
+ * @subpackage  lib
  * @author      Nash<18695616095@163.com> 
  * @since       Version 1.0.0
  */
-namespace system\util;
+namespace system\lib;
 
 /**
- * system\util\Database类
+ * system\lib\Database类
  *
  * 这个类的实例作为数据库操作类
  *
  * @package     system
- * @subpackage  util
+ * @subpackage  lib
  * @category    core
  * @author      Nash
  */
 class Database
 {
-    protected $_di = null, $_pdo = null, $_stmt = null;
+    protected $_di = null, $_pdo = null, $_stmt = null, $_param = null;
 
     /**
      * Database类构造方法
@@ -36,6 +36,7 @@ class Database
     {
         global $di;
         $this->_di = &$di;
+        $this->_param = array();
     }
 
     /**
@@ -66,8 +67,27 @@ class Database
      */
     public function exec($prepare, $data = array())
     {
+        foreach ($data as $key => $value) {
+            $this->setParam($key, $value);
+        }
         $this->_stmt = $this->get_conn()->prepare($prepare);
-        return $this->_stmt->execute($data) ? $this : false;
+        $re = $this->_stmt->execute($this->_param) ? $this : false;
+        $this->_param = array();
+        return $re;
+    }
+
+    /**
+     * setParam方法
+     *
+     * 设置需要预设的值
+     *
+     * @param  $key       预设值的key
+     * @param  $value     预设值的val
+     * @return  void
+     */
+    public function setParam($key, $value)
+    {
+        $this->_param[':' . $key] = $value;
     }
 
     /**
@@ -123,7 +143,7 @@ class Database
                 return $re;
             }
         }
-        throw new \system\lib\Error("system\util\Database::trans()方法的参数必须为闭包");
+        throw new \system\lib\Error("system\lib\Database::trans()方法的参数必须为闭包");
     }
 
     /**

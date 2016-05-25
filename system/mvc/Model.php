@@ -12,6 +12,9 @@
 
 namespace system\mvc;
 
+use \system\inc\database\mysql\DbTypeDatetime;
+use \system\inc\database\mysql\DbTypeInt;
+
 /**
  * system\mvc\Model类
  *
@@ -22,172 +25,120 @@ namespace system\mvc;
  * @category    core
  * @author      Nash
  */
-class Model
+abstract class Model
 {
-    const TABLE = 'TABLE';
-    const COLLATE = 'COLLATE';
-    const ENGINE = 'ENGINE';
-    const COMMENT = 'COMMENT';
-    const FIELDS = 'FIELDS';
-
-    const TYPE = 'TYPE';
-    const TYPE_INT = 'INT';
-    const TYPE_VARCHAR = 'VARCHAR';
-    const TYPE_CHAR = 'CHAR';
-    const TYPE_TEXT = 'TEXT';
-    const TYPE_DATE = 'DATE';
-    const TYPE_DATETIME = 'DATETIME';
-    const TYPE_TIME = 'TIME';
-    const TYPE_BIT = 'BIT';
-    const TYPE_TIMESTAMP = 'TIMESTAMP';
-    const TYPE_SET = 'SET';
-    const TYPE_ENUM = 'ENUM';
-
-    const UNSIGNED = 'UNSIGNED';
-    const AUTO_INCREMENT = 'AUTO_INCREMENT';
-
     const NOT_NULL = 'NOT NULL';
-
-    const DEFAULT_VALUE = 'DEFAULT';
-    const DEFAULT_NULL = ' NULL';
-    const DEFAULT_NOW = ' CURRENT_TIMESTAMP';
-
-    const ON_UPDATE_NOW = ' ON UPDATE CURRENT_TIMESTAMP';
-
-    const KEYS = 'KEYS';
-    const PRIMARY = 'PRIMARY KEY ';
-    const INDEX = 'INDEX ';
-    const FOREIGN = 'FOREIGN KEY ';
-    const UNIQUE = 'UNIQUE INDEX ';
-    const FULLTEXT = 'FULLTEXT INDEX ';
-    const SPATIAL = 'SPATIAL INDEX ';
-
-    private $_class_name, $_table;
-
-    public function __construct($class_name)
+    protected $_key_data = array('_id'=>null,'_create_time'=>null,'_update_time'=>null,'_delete_time'=>null);
+    protected $_data = array();
+    protected $_ignore = array('_id', '_create_time', '_update_time', '_delete_time');
+    protected $_table_name;
+    abstract protected static function _fileds();
+    public function __construct($id = null) // 查找单条数据（或创建一条新的数据）
     {
-        $this->_class_name = $class_name;
-        $this->_table = $class_name::$table;
+        $class_name = get_class($this);
+        $arr = $class_name::_fileds();
+        foreach ($arr as $key => $value) {
+            $this->_data[$key] = $value;
+            $this->_ignore[] = $key;
+        }
+        $tb_name = explode('\\', strtolower($class_name));
+        $this->_table_name = 'nash_' . strtolower(array_pop($tb_name));
+        $this->_key_data['_id'] = (new DbTypeInt);
+        $this->_key_data['_create_time'] = (new DbTypeDatetime)->def_val(DbTypeDatetime::NOW);
+        $this->_key_data['_update_time'] = (new DbTypeDatetime)->def_val(null)->upd_val(DbTypeDatetime::NOW);
+        $this->_key_data['_delete_time'] = (new DbTypeDatetime)->def_val(null);
+        if (!is_null($id)) {
+            $this->_key_data['_id']->val($id);
+            if (!$this->_sync()) {
+                $this->_key_data['_id']->destory();
+            }
+        }
     }
-
-    public function where($value='')
+    public function delete()     // 删除数据
     {
-        # code...
-    }
-
-    public function order($value='')
-    {
-        # code...
-    }
-
-    public function offset($value='')
-    {
-        # code...
-    }
-
-    public function get($value='')
-    {
-        # code...
-    }
-
-    public static function depot()
-    {
-        return new system\mvc\Model(get_called_class());
-    }
-
-    public static function migrate()
-    {
-        $class_name = get_called_class();
         global $di;
-        return $di->get('db')->exec(Model::_make_table($class_name::$table)) !== false;
+        $di->get('db')->exec("UPDATE `{$this->_table_name}` SET `_delete_time` = NOW() WHERE `_id` = :_id", array('_id'=>$this->_key_data['_id']->val()));
+        $this->_sync();
     }
-
-    protected static function _make_table($arr)
+    public function destory()    // 销毁数据
     {
-        $re = 'CREATE TABLE IF NOT EXISTS `' . $arr[Model::TABLE] . '` (' . Model::_make_fields($arr[Model::FIELDS]);
-        if (isset($arr[Model::KEYS])) {
-            $re .= (', ' . Model::_make_keys($arr[Model::KEYS]));
-        }
-        $re .= ')';
-        if (isset($arr[Model::COMMENT])) {
-            $re .= (' COMMENT=\'' . $arr[Model::COMMENT] . '\'');
-        }
-        if (isset($arr[Model::COLLATE])) {
-            $re .= (' COLLATE=\'' . $arr[Model::COLLATE] . '\'');
-        }
-        if (isset($arr[Model::ENGINE])) {
-            $re .= (' ENGINE=' . $arr[Model::ENGINE]);
-        }
-        return $re;
+        global $di;
+        $di->get('db')->exec("DELETE FROM `{$this->_table_name}` WHERE `_id` = :_id", array('_id'=>$this->_key_data['_id']->val()));
+        $this->_sync();
     }
-
-    protected static function _make_fields($fields)
+    public function save()       // 保存数据（新增或修改）
     {
-        $arr = array();
-        foreach ($fields as $key => $value) {
-            if (!is_array($value)) {
-                throw new Exception("Error Processing Request", 1);
+        global $di;
+        if (is_null($this->_key_data['_id']->val())) {
+            // 新增
+            $f_arr = array();
+            foreach ($this->_data as $key => $value) {
+                $di->get('db')->setParam($key, $value->val());
+                $f_arr["`{$key}`"] = ":{$key}";
             }
-            $re_temp = '`' . $key . '`';
-            $type = $value[Model::TYPE];
-            if (is_array($type) && isset($type[1]) && is_array($type[1])) {
-                $re_temp .= (' ' . $type[0] . '(\'' . implode('\', \'', $type[1]) . '\')');
-            } elseif (is_array($type) && isset($type[1])) {
-                $re_temp .= (' ' . $type[0] . '(' . $type[1] . ')');
-            } elseif (is_array($type)) {
-                $re_temp .= (' ' . $type[0]);
+            if ($di->get('db')->exec('INSERT INTO `' . $this->_table_name . '` (' . implode(', ', array_keys($f_arr)) . ') VALUES (' . implode(', ', $f_arr) . ')')) {
+                $this->_key_data['_id']->val($di->get('db')->insert_id());
             } else {
-                $re_temp .= (' ' . $type);
+                echo 'error';
             }
-            if (in_array(Model::UNSIGNED, $value)) {
-                $re_temp .= ' UNSIGNED';
+        } else {
+            // 修改
+            $f_arr = array();
+            foreach ($this->_data as $key => $value) {
+                $di->get('db')->setParam($key, $value->val());
+                $f_arr[] = "`{$key}` = :{$key}";
             }
-            if (in_array(Model::NOT_NULL, $value)) {
-                $re_temp .= ' NOT';
-            }
-            $re_temp .= ' NULL';
-            if (in_array(Model::AUTO_INCREMENT, $value)) {
-                $re_temp .= ' AUTO_INCREMENT';
-            }
-            if (isset($value[Model::DEFAULT_VALUE])) {
-                $re_temp .= ' DEFAULT';
-                if ($value[Model::DEFAULT_VALUE] === Model::DEFAULT_NULL || $value[Model::DEFAULT_VALUE] === Model::DEFAULT_NOW) {
-                    $re_temp .= $value[Model::DEFAULT_VALUE];
-                } else {
-                    $re_temp .= (' \'' . $value[Model::DEFAULT_VALUE] . '\'');
-                }
-                if (in_array(Model::ON_UPDATE_NOW, $value)) {
-                    $re_temp .= Model::ON_UPDATE_NOW;
-                }
-            }
-            if (isset($value[Model::COMMENT])) {
-                $re_temp .= (' COMMENT \'' . $value[Model::COMMENT] . '\'');
-            }
-            $arr[] = $re_temp;
+            $di->get('db')->exec('UPDATE `' . $this->_table_name . '` SET ' . implode(', ', $f_arr) . ' WHERE `_id` = :_id', array('_id'=>$this->_key_data['_id']->val()));
         }
-        return implode(', ', $arr);
+        $this->_sync();
     }
-
-    protected static function _make_keys($keys)
+    public function is_deleted() // 数据是否已被删除
     {
-        $arr = array();
-        foreach ($keys as $k => $v) {
-            if (is_array($v)) {
-                if ($k === Model::PRIMARY) {
-                    $arr[] = $k . '(`' . implode('`, `', $v) . '`)';
-                } elseif ($k === Model::FOREIGN) {
-                    foreach ($v as $_k => $_v) {
-                        $arr[] = 'FOREIGN KEY (`' . (is_array($_v[0]) ? implode('`, `', $_v[0]) : $_v[0]) . '`) REFERENCES `' . $_k . '` (`' . (is_array($_v[1]) ? implode('`, `', $_v[1]) : $_v[1]) . '`)';
-                    }
-                } else {
-                    foreach ($v as $_k => $_v) {
-                        $arr[] = $k . '(`' . (is_array($_v) ? implode('`, `', $_v) : $_v) . '`)';
+        // return $this->_key_data['_id']->val() !== null && $this->_key_data['_delete_time']->val() !== null;
+    }
+    public function __get($key)  // 获取数据
+    {
+        if ($key === '_id' || $key === '_create_time' || $key === '_update_time' || $key === '_delete_time') {
+            return $this->_key_data[$key]->val();
+        }
+        if (isset($this->_data[$key])) {
+            return $this->_data[$key]->val();
+        }
+    }
+    public function __call($func, $args) // 获取数据对象
+    {
+        if (isset($this->_data[$func]) && isset($args[0]) && get_class($args[0]) === get_class($this->_data[$func])) {
+            $this->_data[$func] = $args[0];
+        } elseif (isset($this->_data[$func]) && isset($args[0])) {
+            $this->_data[$func]->val($args[0]);
+        } elseif (isset($this->_data[$func])) {
+            return $this->_data[$func];
+        }
+    }
+    public function __set($key, $value) // 设置数据
+    {
+        if (isset($this->_data[$key])) {
+            $this->_data[$key]->val($value);
+        }
+    }
+    private function _sync()
+    {
+        global $di;
+        $re = $di->get('db')->exec('SELECT `' . implode('`, `', $this->_ignore) . '` FROM `' . $this->_table_name . '` WHERE `_id` = :_id AND `_delete_time` IS NULL', array('_id'=>$this->_key_data['_id']->val()));
+        if ($re) {
+            $arr = $re->one();
+            if ($arr) {
+                foreach ($arr as $key => $value) {
+                    if (array_key_exists($key, $this->_key_data)) {
+                        $this->_key_data[$key]->val($value);
+                    } elseif (array_key_exists($key, $this->_data)) {
+                        $this->_data[$key]->val($value);
                     }
                 }
             } else {
-                $arr[] = $k . '(`' . $v . '`)';
+                return false;
             }
         }
-        return implode(', ', $arr);
+        return $re !== false;
     }
 }

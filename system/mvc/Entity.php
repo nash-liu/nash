@@ -38,9 +38,4 @@ class Entity
         global $di;
         $this->_di = &$di;
     }
-    
-    public function FunctionName($value='')
-    {
-        # code...
-    }
 }
